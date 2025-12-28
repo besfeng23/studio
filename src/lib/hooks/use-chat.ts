@@ -79,7 +79,10 @@ export function useChat({
           const data = doc.data();
           return {
             id: doc.id,
-            ...data,
+            content: data.text, // Ensure 'text' from Firestore is mapped to 'content'
+            role: data.role,
+            type: data.type,
+            thread_id: data.thread_id,
             timestamp: data.createdAt?.toDate() || new Date(),
           } as Message;
         });
@@ -102,19 +105,24 @@ export function useChat({
   // Load initial state (pins) and map content
   useEffect(() => {
     if (!db || !user) return;
-
-    const unsub = onSnapshot(doc(db, 'state', 'pins'), async (doc) => {
-      if (doc.exists()) {
-        const pinIds = doc.data().items || [];
-        const pinnedMessages: Message[] = [];
-        for (const pinId of pinIds) {
-          const msgRef = doc(db, 'history', pinId);
-          const msgSnap = await getDoc(msgRef);
+    const pinsRef = doc(db, 'state', 'pins');
+    
+    const unsub = onSnapshot(pinsRef, async (docSnap) => {
+      const pinIds = docSnap.exists() ? docSnap.data().items || [] : [];
+      const pinnedMessages: Message[] = [];
+      
+      if (pinIds.length > 0) {
+        // Fetch all pinned messages in parallel
+        const pinDocs = await Promise.all(
+          pinIds.map((id: string) => getDoc(doc(db, 'history', id)))
+        );
+        
+        for (const msgSnap of pinDocs) {
           if (msgSnap.exists()) {
              const data = msgSnap.data();
              pinnedMessages.push({
                id: msgSnap.id,
-               content: data.content,
+               content: data.text, // Map 'text' to 'content'
                role: data.role,
                type: data.type,
                thread_id: data.thread_id,
@@ -123,9 +131,9 @@ export function useChat({
              });
           }
         }
-        setPins(pinnedMessages);
-        setMessages(prev => prev.map(m => ({...m, isPinned: pinIds.includes(m.id)})))
       }
+      setPins(pinnedMessages);
+      setMessages(prev => prev.map(m => ({...m, isPinned: pinIds.includes(m.id)})))
     });
 
     return () => unsub();
@@ -141,13 +149,13 @@ export function useChat({
       if (!db || !user) return;
       setStatus('saving');
 
-      const messageType = userInput.startsWith('/') ? 'command' : 'chat';
-      const userMessage: Omit<Message, 'id' | 'timestamp' | 'isPinned'> = {
+      const messageType = userInput.startsWith('/') ? 'command' : 'decision';
+      const userMessage: Omit<Message, 'id' | 'timestamp' | 'isPinned' | 'content'> & {text: string} = {
         role: 'user',
-        content: userInput,
+        text: userInput,
         createdAt: serverTimestamp(),
         thread_id: 'default',
-        type: messageType,
+        type: userInput.startsWith('/') ? 'command' : 'chat',
       };
 
       try {
@@ -189,7 +197,7 @@ export function useChat({
             .map(p => p.content);
 
           // Lane 1: memoryLane
-          const memoryLaneResult: MemoryLaneOutput = await runMemoryLane({
+          const memoryLaneResult = await runMemoryLane({
             user_message: userInput,
             context_note: contextNote,
             last_state: lastState,
@@ -213,10 +221,10 @@ export function useChat({
           await batch.commit();
 
           // Clarification Protocol
-          if (memoryLaneResult.needs_clarification) {
-            const clarificationMessage: Omit<Message, 'id' | 'timestamp' | 'isPinned'> = {
+          if (memoryLaneResult.needs_clarification && memoryLaneResult.clarifying_question) {
+            const clarificationMessage = {
               role: 'assistant',
-              content: memoryLaneResult.clarifying_question!,
+              text: memoryLaneResult.clarifying_question,
               createdAt: serverTimestamp(),
               thread_id: 'default',
               type: 'chat',
@@ -224,7 +232,7 @@ export function useChat({
             await addDoc(collection(db, 'history'), clarificationMessage);
             await setDoc(
               doc(db, 'state', 'last_state'),
-              { last_assistant_reply: memoryLaneResult.clarifying_question! },
+              { last_assistant_reply: memoryLaneResult.clarifying_question },
               { merge: true }
             );
             setStatus('done');
@@ -240,7 +248,7 @@ export function useChat({
 
           // Lane 2: answerLane
           setStatus('answering');
-          const answerLaneResult: AnswerLaneOutput = await runAnswerLane({
+          const answerLaneResult = await runAnswerLane({
             user_message: userInput,
             context_note: memoryLaneResult.new_context_note,
             retrieved_history: retrievedSnippets,
@@ -248,12 +256,12 @@ export function useChat({
           });
 
           // Actions from answerLane
-          const assistantMessage: Omit<Message, 'id' | 'timestamp' | 'isPinned'> = {
+          const assistantMessage = {
             role: 'assistant',
-            content: answerLaneResult.reply_text,
+            text: answerLaneResult.reply_text,
             createdAt: serverTimestamp(),
             thread_id: 'default',
-            type: answerLaneResult.reply_text.startsWith('/decision') ? 'decision' : 'chat',
+            type: 'chat',
             source_ids: answerLaneResult.source_ids,
           };
           await addDoc(collection(db, 'history'), assistantMessage);
@@ -281,7 +289,7 @@ export function useChat({
              try {
                 await addDoc(collection(db, 'history'), {
                   role: 'system',
-                  content: `ERROR: ${error.message}`,
+                  text: `ERROR: ${error.message}`,
                   createdAt: serverTimestamp(),
                   thread_id: 'default',
                   type: 'chat'

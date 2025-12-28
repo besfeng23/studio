@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useMemo } from 'react';
 import { Icons } from './icons';
 import { ChatStatus } from './chat/chat-status';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 
 type ChatLayoutProps = ReturnType<typeof useChat>;
 
@@ -50,6 +51,16 @@ export function ChatLayout(props: ChatLayoutProps) {
           />
         </main>
         <footer className="border-t bg-card p-4">
+          {/* Temporary Diagnostics Box */}
+          <Card className="mb-4 bg-secondary/50">
+            <CardHeader className="p-3">
+              <CardTitle className="text-sm font-semibold">Diagnostics</CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 pt-0 text-xs text-muted-foreground">
+              <p>Status: <span className="font-mono text-foreground">{status}</span></p>
+            </CardContent>
+          </Card>
+          {/* End Temporary Diagnostics Box */}
           <ChatStatus status={status} />
           <div className="mb-2 flex flex-wrap items-center gap-2">
             {commandButtons.map(({ command, label }) => (

@@ -2,7 +2,7 @@ import type { Timestamp } from "firebase/firestore";
 
 export type Message = {
   id: string;
-  role: 'user' | 'assistant' | 'system' | 'model';
+  role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: Date;
   createdAt?: Timestamp | { seconds: number, nanoseconds: number };
