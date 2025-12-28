@@ -11,15 +11,12 @@ import {
 import { Icons } from '@/components/icons';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useUser } from '@/firebase';
-import { Button } from './ui/button';
 import { getAuth, signOut } from 'firebase/auth';
 
 export function MainSidebar() {
-  const userAvatar = PlaceHolderImages.find((img) => img.id === 'user-avatar');
   const pathname = usePathname();
   const { user } = useUser();
   const auth = getAuth();
@@ -49,7 +46,7 @@ export function MainSidebar() {
       <SidebarMenu className="flex-1">
         {menuItems.map((item) => (
           <SidebarMenuItem key={item.href}>
-            <Link href={item.href} asChild>
+            <Link href={item.href}>
               <SidebarMenuButton
                 tooltip={item.label}
                 isActive={pathname === item.href}
