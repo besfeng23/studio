@@ -1,4 +1,3 @@
-'use server';
 /**
  * @fileOverview The "deep" thinking lane. It synthesizes a final answer
  * based on the user's question and the context provided by memoryLane and retrieval.
@@ -85,7 +84,7 @@ None
 Based on all the information above and adhering strictly to the rules, generate the final reply for the user. Produce ONLY the JSON output.`,
 });
 
-export const answerLane = ai.defineFlow(
+export const answerLaneFlow = ai.defineFlow(
   {
     name: 'answerLaneFlow',
     inputSchema: AnswerLaneInputSchema,

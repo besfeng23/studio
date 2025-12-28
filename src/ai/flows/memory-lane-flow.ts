@@ -1,4 +1,3 @@
-'use server';
 /**
  * @fileOverview The "fast" lane for processing user input.
  * It categorizes intent, updates context, and determines if clarification is needed.
@@ -97,7 +96,7 @@ Assistant: {{last_state.last_assistant_reply}}
 Produce ONLY the JSON output, with no additional text or explanations.`,
 });
 
-export const memoryLane = ai.defineFlow(
+export const memoryLaneFlow = ai.defineFlow(
   {
     name: 'memoryLaneFlow',
     inputSchema: MemoryLaneInputSchema,

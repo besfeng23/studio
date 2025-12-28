@@ -28,14 +28,10 @@ import {
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import {
-  memoryLane,
-  type MemoryLaneOutput,
-} from '@/ai/flows/memory-lane-flow';
-import {
-  answerLane,
-  type AnswerLaneOutput,
-} from '@/ai/flows/answer-lane-flow';
+import { runMemoryLane } from '@/ai/actions/runMemoryLane';
+import type { MemoryLaneOutput } from '@/ai/flows/memory-lane-flow';
+import { runAnswerLane } from '@/ai/actions/runAnswerLane';
+import type { AnswerLaneOutput } from '@/ai/flows/answer-lane-flow';
 import { runRetrieval } from '../retrieval';
 
 export type ChatStatus =
@@ -193,7 +189,7 @@ export function useChat({
             .map(p => p.content);
 
           // Lane 1: memoryLane
-          const memoryLaneResult: MemoryLaneOutput = await memoryLane({
+          const memoryLaneResult: MemoryLaneOutput = await runMemoryLane({
             user_message: userInput,
             context_note: contextNote,
             last_state: lastState,
@@ -244,7 +240,7 @@ export function useChat({
 
           // Lane 2: answerLane
           setStatus('answering');
-          const answerLaneResult: AnswerLaneOutput = await answerLane({
+          const answerLaneResult: AnswerLaneOutput = await runAnswerLane({
             user_message: userInput,
             context_note: memoryLaneResult.new_context_note,
             retrieved_history: retrievedSnippets,
