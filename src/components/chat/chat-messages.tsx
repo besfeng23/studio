@@ -13,7 +13,6 @@ interface ChatMessagesProps {
 }
 
 export function ChatMessages({ messages, isPending, togglePin }: ChatMessagesProps) {
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -23,7 +22,7 @@ export function ChatMessages({ messages, isPending, togglePin }: ChatMessagesPro
   }, [messages, isPending]);
 
   return (
-    <ScrollArea className="h-full" ref={scrollAreaRef} viewportRef={viewportRef}>
+    <ScrollArea className="h-full" viewportRef={viewportRef}>
       <div className="p-4 md:p-6">
         {messages.map((message) => (
           <ChatMessage key={message.id} message={message} onPinToggle={togglePin} />
