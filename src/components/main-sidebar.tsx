@@ -1,3 +1,5 @@
+'use client';
+
 import {
   Sidebar,
   SidebarHeader,
@@ -10,9 +12,27 @@ import { Icons } from '@/components/icons';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useUser } from '@/firebase';
+import { Button } from './ui/button';
+import { getAuth, signOut } from 'firebase/auth';
 
 export function MainSidebar() {
-  const userAvatar = PlaceHolderImages.find(img => img.id === 'user-avatar');
+  const userAvatar = PlaceHolderImages.find((img) => img.id === 'user-avatar');
+  const pathname = usePathname();
+  const { user } = useUser();
+  const auth = getAuth();
+
+  const menuItems = [
+    { href: '/chat', icon: Icons.Chat, label: 'Chat' },
+    { href: '/memory', icon: Icons.Memory, label: 'Memory' },
+    { href: '/settings', icon: Icons.Settings, label: 'Settings' },
+  ];
+
+  const handleSignOut = () => {
+    signOut(auth);
+  };
 
   return (
     <Sidebar>
@@ -20,42 +40,48 @@ export function MainSidebar() {
         <div className="flex items-center gap-3 p-2">
           <Icons.Bot className="size-8 text-primary" />
           <div className="flex flex-col">
-            <h2 className="text-lg font-semibold text-sidebar-foreground">Pandora's Box</h2>
+            <h2 className="text-lg font-semibold text-sidebar-foreground">
+              Pandora's Box
+            </h2>
           </div>
         </div>
       </SidebarHeader>
       <SidebarMenu className="flex-1">
-        <SidebarMenuItem>
-          <SidebarMenuButton tooltip="Chat" isActive>
-            <Icons.Chat />
-            <span>Chat</span>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-        <SidebarMenuItem>
-          <SidebarMenuButton tooltip="Memory">
-            <Icons.Memory />
-            <span>Memory</span>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
+        {menuItems.map((item) => (
+          <SidebarMenuItem key={item.href}>
+            <Link href={item.href} passHref legacyBehavior>
+              <SidebarMenuButton
+                asChild
+                tooltip={item.label}
+                isActive={pathname === item.href}
+              >
+                <a>
+                  <item.icon />
+                  <span>{item.label}</span>
+                </a>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+        ))}
       </SidebarMenu>
       <SidebarFooter>
         <Separator className="my-2" />
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Settings">
-              <Icons.Settings />
-              <span>Settings</span>
+            <SidebarMenuButton>
+              {user && (
+                <Avatar className="size-6">
+                  {user.photoURL && <AvatarImage src={user.photoURL} alt="User Avatar" />}
+                  <AvatarFallback>{user.email?.[0].toUpperCase()}</AvatarFallback>
+                </Avatar>
+              )}
+              <span>{user?.email ?? 'Profile'}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton>
-              {userAvatar && (
-                <Avatar className="size-6">
-                  <AvatarImage src={userAvatar.imageUrl} alt="User Avatar" />
-                  <AvatarFallback>U</AvatarFallback>
-                </Avatar>
-              )}
-              <span>Profile</span>
+            <SidebarMenuButton onClick={handleSignOut}>
+              <Icons.Logout />
+              <span>Logout</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

@@ -1,14 +1,40 @@
+'use client';
+
 import type { useChat } from '@/lib/hooks/use-chat';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { ChatMessages } from '@/components/chat/chat-messages';
 import { ChatInput } from '@/components/chat/chat-input';
 import { ContextPanel } from '@/components/context-panel';
-import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useMemo } from 'react';
+import { Icons } from './icons';
+import { ChatStatus } from './chat/chat-status';
 
 type ChatLayoutProps = ReturnType<typeof useChat>;
 
 export function ChatLayout(props: ChatLayoutProps) {
+  const {
+    messages,
+    pins,
+    input,
+    isPending,
+    handleInputChange,
+    handleSubmit,
+    togglePin,
+    status,
+    handleCommand,
+  } = props;
+
+  const commandButtons = useMemo(
+    () => [
+      { command: '/continue', label: 'CONTINUE' },
+      { command: '/recap', label: 'RECAP' },
+      { command: '/pin', label: 'PIN' },
+      { command: '/decision', label: 'DECISION' },
+    ],
+    []
+  );
+
   return (
     <div className="relative flex h-full max-h-[100svh] overflow-hidden">
       <div className="flex flex-1 flex-col overflow-hidden">
@@ -18,27 +44,35 @@ export function ChatLayout(props: ChatLayoutProps) {
         </header>
         <main className="flex-1 overflow-hidden">
           <ChatMessages
-            messages={props.messages}
-            isPending={props.isPending}
-            togglePin={props.togglePin}
+            messages={messages}
+            isPending={isPending}
+            togglePin={togglePin}
           />
         </main>
         <footer className="border-t bg-card p-4">
+          <ChatStatus status={status} />
           <div className="mb-2 flex flex-wrap items-center gap-2">
-            <Button variant="outline" size="sm" >CONTINUE</Button>
-            <Button variant="outline" size="sm" >RECAP</Button>
-            <Button variant="outline" size="sm" >PIN</Button>
-            <Button variant="outline" size="sm" >DECISION</Button>
+            {commandButtons.map(({ command, label }) => (
+              <Button
+                key={command}
+                variant="outline"
+                size="sm"
+                onClick={() => handleCommand(command)}
+                disabled={isPending}
+              >
+                {label}
+              </Button>
+            ))}
           </div>
           <ChatInput
-            input={props.input}
-            handleInputChange={props.handleInputChange}
-            handleSubmit={props.handleSubmit}
-            isPending={props.isPending}
+            input={input}
+            handleInputChange={handleInputChange}
+            handleSubmit={handleSubmit}
+            isPending={isPending}
           />
         </footer>
       </div>
-      <ContextPanel pins={props.pins} togglePin={props.togglePin} />
+      <ContextPanel pins={pins} togglePin={togglePin} />
     </div>
   );
 }

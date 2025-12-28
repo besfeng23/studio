@@ -16,6 +16,7 @@ import {
   BookMarked,
   PinOff,
   AlertTriangle,
+  LogOut,
 } from 'lucide-react';
 
 export const Icons = {
@@ -36,4 +37,5 @@ export const Icons = {
   Menu: PanelLeft,
   Back: ChevronLeft,
   Decision: AlertTriangle,
+  Logout: LogOut,
 };

@@ -1,84 +1,33 @@
 'use server';
 
-import { answerQuestionsFromHistory } from '@/ai/flows/answer-questions-from-history';
-import { summarizeConversation } from '@/ai/flows/summarize-conversation';
+import {
+  addDoc,
+  collection,
+  serverTimestamp,
+  type Firestore,
+} from 'firebase/firestore';
 import type { Message } from './types';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
-// In a real application, you would initialize and use the Firebase Admin SDK here
-// to persist messages to Firestore.
-// import { db } from './firebase-admin';
-
-async function saveMessageToFirestore(message: Message) {
-  console.log('Saving message to Firestore (mocked):', message.content);
-  // Example: await db.collection('chats').doc('chatId').collection('messages').add(message);
-  return;
-}
-
-export async function handleUserMessage(
-  history: Message[],
-  pins: Message[],
-  userInput: string
-): Promise<Message> {
-  const userMessage: Message = {
-    id: crypto.randomUUID(),
-    role: 'user',
-    content: userInput,
-    timestamp: new Date(),
-  };
-
-  // Mock saving to Firestore
-  await saveMessageToFirestore(userMessage);
-
-  const fullHistory = [...history, userMessage];
-
-  // Command handling
-  if (userInput.toLowerCase().startsWith('/recap')) {
-    const conversationHistory = fullHistory
-      .map((msg) => `${msg.role}: ${msg.content}`)
-      .join('\n');
-    const { summary } = await summarizeConversation({ conversationHistory });
-    return {
-      id: crypto.randomUUID(),
-      role: 'system',
-      content: `Recap of the conversation:\n\n${summary}`,
-      timestamp: new Date(),
-    };
-  }
-
-  // AI interaction
+export async function saveMessage(
+  db: Firestore,
+  message: Omit<Message, 'id' | 'timestamp' | 'isPinned'>
+) {
   try {
-    const conversationHistory = fullHistory
-      .map((msg) => `${msg.role}: ${msg.content}`)
-      .join('\n');
-    
-    const pinsContext = pins.length > 0 
-      ? `The user has pinned the following important points:\n${pins.map(p => `- ${p.content}`).join('\n')}`
-      : 'No items are currently pinned.';
-
-    const response = await answerQuestionsFromHistory({
-      question: userInput,
-      conversationHistory,
-      pinsContext,
+    const docRef = await addDoc(collection(db, 'history'), {
+      ...message,
+      createdAt: serverTimestamp(),
     });
-
-    const assistantMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content: response.answer,
-      timestamp: new Date(),
-    };
-
-    // Mock saving assistant message
-    await saveMessageToFirestore(assistantMessage);
-
-    return assistantMessage;
+    return docRef.id;
   } catch (error) {
-    console.error('Error processing AI response:', error);
-    return {
-      id: crypto.randomUUID(),
-      role: 'system',
-      content: 'Sorry, I encountered an error. Please try again.',
-      timestamp: new Date(),
-    };
+    console.error('Error saving message to Firestore:', error);
+    const permissionError = new FirestorePermissionError({
+      path: 'history',
+      operation: 'create',
+      requestResourceData: message,
+    });
+    errorEmitter.emit('permission-error', permissionError);
+    throw new Error('FIRESTORE ERROR');
   }
 }
