@@ -1,0 +1,180 @@
+{
+  "entities": {
+    "Message": {
+      "title": "Message",
+      "description": "A chat message in a conversation thread.",
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "The content of the message."
+        },
+        "role": {
+          "type": "string",
+          "description": "The role of the message sender (user or model)."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of message (chat, command, or decision)."
+        },
+        "thread_id": {
+          "type": "string",
+          "description": "The ID of the conversation thread."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the message was created."
+        }
+      },
+      "required": ["text", "role", "type", "thread_id", "createdAt"]
+    },
+    "Context": {
+      "title": "Context",
+      "description": "The current context note for the conversation.",
+      "type": "object",
+      "properties": {
+        "note": {
+          "type": "string",
+          "description": "The summary of the current context."
+        }
+      },
+      "required": ["note"]
+    },
+    "Pins": {
+      "title": "Pins",
+      "description": "A list of pinned items.",
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "An array of pinned strings."
+        }
+      },
+      "required": ["items"]
+    },
+    "LastState": {
+      "title": "Last State",
+      "description": "The last known state of the conversation.",
+      "type": "object",
+      "properties": {
+        "last_user_message": {
+          "type": "string"
+        },
+        "last_assistant_reply": {
+          "type": "string"
+        },
+        "next_action": {
+          "type": "string"
+        }
+      }
+    },
+    "Decision": {
+      "title": "Decision",
+      "description": "A recorded decision.",
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "why": {
+          "type": "string"
+        },
+        "linked_history_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": ["text"]
+    },
+    "Settings": {
+      "title": "Settings",
+      "description": "User-specific settings.",
+      "type": "object",
+      "properties": {
+        "provider": {
+          "type": "string"
+        },
+        "memoryLaneModel": {
+          "type": "string"
+        },
+        "answerLaneModel": {
+          "type": "string"
+        },
+        "replyStyle": {
+          "type": "string",
+          "enum": ["Short", "Long"]
+        }
+      }
+    },
+    "ApiClient": {
+      "title": "API Client",
+      "description": "An API client for the callback URL.",
+      "type": "object",
+      "properties": {
+        "apiKey": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["apiKey", "createdAt"]
+    }
+  },
+  "auth": {
+    "providers": [
+      "email-password"
+    ]
+  },
+  "firestore": {
+    "/history/{messageId}": {
+      "schema": {
+        "$ref": "#/entities/Message"
+      },
+      "description": "Stores the lifetime log of all messages."
+    },
+    "/state/context": {
+      "schema": {
+        "$ref": "#/entities/Context"
+      },
+      "description": "Stores the current context note."
+    },
+    "/state/pins": {
+      "schema": {
+        "$ref": "#/entities/Pins"
+      },
+      "description": "Stores pinned items."
+    },
+    "/state/last_state": {
+      "schema": {
+        "$ref": "#/entities/LastState"
+      },
+      "description": "Stores the last known conversation state."
+    },
+    "/decisions/{decisionId}": {
+      "schema": {
+        "$ref": "#/entities/Decision"
+      },
+      "description": "Stores recorded decisions."
+    },
+    "/settings/{userId}": {
+      "schema": {
+        "$ref": "#/entities/Settings"
+      },
+      "description": "User-specific settings."
+    },
+    "/api_clients/{clientId}": {
+      "schema": {
+        "$ref": "#/entities/ApiClient"
+      },
+      "description": "API clients for the callback URL."
+    }
+  }
+}
