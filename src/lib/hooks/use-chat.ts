@@ -11,8 +11,7 @@ import {
 } from 'react';
 import type { Message } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { useUser, useFirestore, useCollection } from '@/firebase';
-import { saveMessage } from '../actions';
+import { useUser, useFirestore } from '@/firebase';
 import {
   addDoc,
   collection,
@@ -25,6 +24,7 @@ import {
   serverTimestamp,
   setDoc,
   writeBatch,
+  where,
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -103,24 +103,37 @@ export function useChat({
     return () => unsubscribe();
   }, [db, user, toast]);
 
-  // Load initial state (pins, context, last_state)
+  // Load initial state (pins) and map content
   useEffect(() => {
     if (!db || !user) return;
 
-    const unsubscribers = [
-      onSnapshot(doc(db, 'state', 'pins'), (doc) => {
-        if (doc.exists()) {
-          const pinIds = doc.data().items || [];
-          // We need to fetch the content for these pins from the messages
-          const pinnedMessages = messages.filter(m => pinIds.includes(m.id));
-          setPins(pinnedMessages);
+    const unsub = onSnapshot(doc(db, 'state', 'pins'), async (doc) => {
+      if (doc.exists()) {
+        const pinIds = doc.data().items || [];
+        const pinnedMessages: Message[] = [];
+        for (const pinId of pinIds) {
+          const msgRef = doc(db, 'history', pinId);
+          const msgSnap = await getDoc(msgRef);
+          if (msgSnap.exists()) {
+             const data = msgSnap.data();
+             pinnedMessages.push({
+               id: msgSnap.id,
+               content: data.content,
+               role: data.role,
+               type: data.type,
+               thread_id: data.thread_id,
+               timestamp: data.createdAt?.toDate() ?? new Date(),
+               isPinned: true
+             });
+          }
         }
-      }),
-      // ... listeners for context and last_state will be added later
-    ];
+        setPins(pinnedMessages);
+        setMessages(prev => prev.map(m => ({...m, isPinned: pinIds.includes(m.id)})))
+      }
+    });
 
-    return () => unsubscribers.forEach((unsub) => unsub());
-  }, [db, user, messages]);
+    return () => unsub();
+  }, [db, user]);
 
 
   const handleInputChange = useCallback((e: ChangeEvent<HTMLTextAreaElement>) => {
@@ -174,17 +187,21 @@ export function useChat({
             : '';
           const lastState = lastStateDoc.exists() ? lastStateDoc.data() : {};
           const pinItems = pinsDoc.exists() ? pinsDoc.data().items : [];
+          
+          const textPins = pins
+            .filter(p => pinItems.includes(p.id))
+            .map(p => p.content);
 
           // Lane 1: memoryLane
-          setStatus('memory-updated'); // This is a bit of a simplification
           const memoryLaneResult: MemoryLaneOutput = await memoryLane({
             user_message: userInput,
             context_note: contextNote,
             last_state: lastState,
-            pins: pinItems,
+            pins: textPins,
           });
 
           // Actions from memoryLane
+          setStatus('memory-updated');
           const batch = writeBatch(db);
           batch.set(doc(db, 'state', 'context'), {
             note: memoryLaneResult.new_context_note,
@@ -231,7 +248,7 @@ export function useChat({
             user_message: userInput,
             context_note: memoryLaneResult.new_context_note,
             retrieved_history: retrievedSnippets,
-            pins: pinItems,
+            pins: textPins,
           });
 
           // Actions from answerLane
@@ -240,7 +257,7 @@ export function useChat({
             content: answerLaneResult.reply_text,
             createdAt: serverTimestamp(),
             thread_id: 'default',
-            type: 'chat',
+            type: answerLaneResult.reply_text.startsWith('/decision') ? 'decision' : 'chat',
             source_ids: answerLaneResult.source_ids,
           };
           await addDoc(collection(db, 'history'), assistantMessage);
@@ -278,7 +295,7 @@ export function useChat({
         }
       });
     },
-    [db, user, toast]
+    [db, user, toast, pins]
   );
 
   const handleSubmit = useCallback(
@@ -294,9 +311,14 @@ export function useChat({
   );
 
   const handleCommand = useCallback((command: string) => {
-      setInput(command + ' ');
+      const currentInput = input.trim();
+      if (currentInput.startsWith('/')) {
+        setInput(command + ' ');
+      } else {
+        setInput(command + ' ' + currentInput);
+      }
       textareaRef.current?.focus();
-  }, []);
+  }, [input]);
 
   const togglePin = useCallback(
     async (messageId: string) => {
@@ -320,13 +342,6 @@ export function useChat({
         }
         await setDoc(pinsRef, { items: updatedPins });
 
-        // Update local state for immediate feedback
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === messageId ? { ...m, isPinned: !isAlreadyPinned } : m
-          )
-        );
-
       } catch (error) {
          toast({
           variant: 'destructive',
@@ -347,7 +362,7 @@ export function useChat({
     messages,
     pins,
     input,
-    isPending: isPending || status !== 'done' && status !== 'idle' && status !== 'error',
+    isPending: isPending || (status !== 'done' && status !== 'idle' && status !== 'error'),
     status,
     handleInputChange,
     handleSubmit,

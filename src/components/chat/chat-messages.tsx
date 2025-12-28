@@ -34,7 +34,7 @@ export function ChatMessages({ messages, isPending, togglePin }: ChatMessagesPro
           </div>
         )}
         
-        {isPending && !messages.some(m => m.role === 'assistant' && m.id === 'thinking') && (
+        {isPending && (
           <div className="flex items-start gap-4 py-4">
             <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
               <Icons.Bot className="size-5" />

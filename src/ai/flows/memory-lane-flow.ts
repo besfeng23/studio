@@ -86,7 +86,7 @@ Assistant: {{last_state.last_assistant_reply}}
 
 **Your Tasks:**
 
-1.  **Update Context Note:** Revise the "Current Conversation Summary" to be a new, single-paragraph summary that incorporates the user's latest message. Keep it concise.
+1.  **Update Context Note:** Revise the "Current Conversation Summary" to be a new, a single-paragraph summary that incorporates the user's latest message. Keep it concise.
 2.  **Manage Pins:** If the user's message implies adding or removing a pin, update the list of pins accordingly. Otherwise, leave it alone.
 3.  **Categorize Intent:** Classify the user's intent as "chat" (normal conversation), "command" (e.g., /recap, /pin), or "decision" (when the user wants to formally record a decision with /decision).
 4.  **Generate Search Queries:** Create a list of 3-5 keywords or short phrases. These will be used to search the full conversation history for relevant details. They should be targeted and specific to the user's message.

@@ -45,6 +45,7 @@ export async function runRetrieval(
 
   querySnapshot.forEach((doc) => {
     const data = doc.data();
+    if (!data.text) return;
     const text = data.text.toLowerCase();
     
     const hasKeyword = allKeywords.some(keyword => text.includes(keyword.toLowerCase()));
@@ -60,5 +61,8 @@ export async function runRetrieval(
     }
   });
 
-  return snippets;
+  // Sort by creation date, most recent first
+  snippets.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+
+  return snippets.slice(0, 10); // Return top 10 most recent relevant snippets
 }

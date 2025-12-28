@@ -10,7 +10,6 @@ import {
 } from '@/components/ui/card';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { useDoc } from '@/firebase';
-import type { Message } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
 type StateDoc = {
@@ -82,7 +81,7 @@ export default function MemoryPage() {
                     <ul className="list-disc space-y-2 pl-5 text-sm text-muted-foreground">
                       {pinsData?.items && pinsData.items.length > 0 ? (
                         pinsData.items.map((pin, index) => (
-                          <li key={index}>{pin}</li> // Note: This displays IDs, will need to fetch content later
+                          <li key={index}>{pin}</li>
                         ))
                       ) : (
                         <li>No items pinned.</li>
