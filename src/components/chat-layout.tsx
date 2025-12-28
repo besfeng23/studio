@@ -4,6 +4,7 @@ import { ChatMessages } from '@/components/chat/chat-messages';
 import { ChatInput } from '@/components/chat/chat-input';
 import { ContextPanel } from '@/components/context-panel';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 type ChatLayoutProps = ReturnType<typeof useChat>;
 
@@ -23,6 +24,12 @@ export function ChatLayout(props: ChatLayoutProps) {
           />
         </main>
         <footer className="border-t bg-card p-4">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" >CONTINUE</Button>
+            <Button variant="outline" size="sm" >RECAP</Button>
+            <Button variant="outline" size="sm" >PIN</Button>
+            <Button variant="outline" size="sm" >DECISION</Button>
+          </div>
           <ChatInput
             input={props.input}
             handleInputChange={props.handleInputChange}
